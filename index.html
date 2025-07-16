@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MyXL OTP Request Tool</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+    .container { background: white; padding: 20px; max-width: 500px; margin: auto; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input, button { width: 100%; padding: 10px; margin: 10px 0; }
+    code { background: #eee; padding: 10px; display: block; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🔐 Request OTP MyXL</h2>
+    <label for="bnumber">Nomor HP (628xxx)</label>
+    <input type="text" id="bnumber" placeholder="62859xxxxxxx" required />
+    <label for="email">Email (opsional)</label>
+    <input type="email" id="email" placeholder="opsional" />
+    <button onclick="sendOTP()">Kirim OTP</button>
+    <h3>📡 Hasil cURL</h3>
+    <code id="output"></code>
+  </div>
+
+  <script>
+    function sendOTP() {
+      const bnumber = document.getElementById('bnumber').value.trim();
+      const email = document.getElementById('email').value.trim();
+      if (!bnumber.startsWith('628')) {
+        alert('Nomor harus diawali 628'); return;
+      }
+
+      const payload = {
+        "B-number": bnumber,
+        "Email Address": email || ""
+      };
+
+      const jsonPayload = JSON.stringify(payload, null, 2);
+
+      const curl = `curl -X POST \\
+  -H "Content-Type: application/json" \\
+  -H "Accept: application/json" \\
+  -H "User-Agent: MyXL/8.6.0 (Android; 13)" \\
+  -d '${jsonPayload}' \\
+  https://srg-txl-login-controller-service.ext.dp.xl.co.id/v2/login/otp-request`;
+
+      document.getElementById('output').textContent = curl;
+    }
+  </script>
+</body>
+</html>
