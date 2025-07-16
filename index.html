@@ -2,85 +2,153 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Tembak Paket XL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>XL OTP Login Solution</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
   <style>
-    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
-    .box { background: white; padding: 20px; max-width: 500px; margin: auto; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    input, select, button { width: 100%; padding: 10px; margin: 10px 0; }
-    pre { background: #eee; padding: 10px; white-space: pre-wrap; }
+    #cover-spin {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255,255,255,0.7);
+      z-index: 9999;
+      display: none;
+    }
+    #cover-spin::after {
+      content: '';
+      position: absolute;
+      left: 48%;
+      top: 40%;
+      width: 40px;
+      height: 40px;
+      border: 4px solid black;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
-<body>
-  <div class="box">
-    <h2>🔥 Tembak Paket XL</h2>
+<body class="bg-gray-100 text-gray-800">
+  <div id="cover-spin"></div>
 
-    <label>Nomor HP (awali dengan 628)</label>
-    <input type="text" id="msisdn" placeholder="62859xxxxxxx" />
+  <header class="bg-white shadow">
+    <div class="container mx-auto px-4 py-6">
+      <h1 class="text-3xl font-bold">XL OTP LOGIN SOLUTION</h1>
+    </div>
+  </header>
 
-    <button onclick="kirimOTP()">1️⃣ Kirim OTP</button>
+  <section class="container mx-auto px-4 py-10">
+    <form>
+      <div class="mb-4">
+        <label>Kode Seller</label>
+        <input type="text" id="seller_code" class="w-full p-2 border" placeholder="Kode Seller" required>
+      </div>
+      <div class="mb-4">
+        <label>Nomor XL</label>
+        <input type="number" id="msisdn" class="w-full p-2 border" placeholder="628xxxxxxxxxx" required>
+      </div>
+      <div class="mb-4">
+        <label>Kode OTP</label>
+        <input type="text" id="otp" class="w-full p-2 border" placeholder="Kode OTP">
+      </div>
+      <input type="hidden" id="auth_id">
+      <input type="hidden" id="access_token_temp">
 
-    <label>Kode OTP</label>
-    <input type="text" id="otp" placeholder="Masukkan OTP dari SMS" />
+      <button type="button" class="bg-blue-500 text-white px-4 py-2 rounded" id="reqOTP">MINTA OTP</button>
+      <button type="button" class="bg-green-500 text-white px-4 py-2 rounded" id="verOTP">LOGIN OTP</button>
+      <button type="button" class="bg-indigo-500 text-white px-4 py-2 rounded" id="checkQuota">CEK KUOTA</button>
+    </form>
 
-    <label>Pilih Paket</label>
-    <select id="serviceid">
-      <option value="8211369">Waze & Chat 1hr</option>
-      <option value="8211370">Waze & Chat 3hr</option>
-      <option value="8211371">Waze & Chat 7hr</option>
-      <option value="8211372">Instagram 1hr Sahur</option>
-      <option value="8211373">Instagram 3hr Sahur</option>
-      <option value="8211374">Instagram 7hr Sahur</option>
-    </select>
+    <div id="hasilPaket" class="mt-10 hidden">
+      <h2 class="text-xl font-bold mb-2">Data Kuota Aktif</h2>
+      <table class="table table-bordered w-full">
+        <thead>
+          <tr>
+            <th>Package ID</th>
+            <th>Nama Paket</th>
+            <th>Expired</th>
+            <th>Benefits</th>
+          </tr>
+        </thead>
+        <tbody id="packageTableBody"></tbody>
+      </table>
+    </div>
 
-    <button onclick="beliPaket()">🚀 Login & Beli Paket</button>
-
-    <h3>📡 Respons:</h3>
-    <pre id="output">Belum ada aksi...</pre>
-  </div>
+    <div class="mt-6">
+      <label>Log Response</label>
+      <textarea id="logResponse" class="w-full p-2 border h-32"></textarea>
+    </div>
+  </section>
 
   <script>
-    const PROSES_URL = 'https://tembakxl.infinityfreeapp.com/proses.php';
+    var jsonData = {};
 
-    function kirimOTP() {
-      const msisdn = document.getElementById('msisdn').value.trim();
-      const output = document.getElementById('output');
+    $('#reqOTP').click(function(){
+      $.post("https://nomorxlku.my.id/api/req_otp.php", {
+        msisdn: $('#msisdn').val(),
+        seller_code: $('#seller_code').val()
+      }, function(s){
+        $('#auth_id').val(s?.data?.auth_id || '');
+        $('#logResponse').val(s.message || 'Error saat request OTP');
+      }, 'json');
+    });
 
-      if (!msisdn.startsWith('628')) {
-        alert("Nomor harus diawali 628");
-        return;
-      }
+    $('#verOTP').click(function(){
+      $.post("https://nomorxlku.my.id/api/ver_otp.php", {
+        msisdn: $('#msisdn').val(),
+        auth_id: $('#auth_id').val(),
+        otp: $('#otp').val()
+      }, function(s){
+        if(s.status){
+          $('#access_token_temp').val(s.data.access_token);
+          $('#logResponse').val("Login berhasil, siap cek kuota.");
+        } else {
+          $('#logResponse').val(s.message);
+        }
+      }, 'json');
+    });
 
-      output.textContent = "⏳ Mengirim OTP...";
-      fetch(PROSES_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `aksi=otp&msisdn=${encodeURIComponent(msisdn)}`
-      })
-      .then(res => res.text())
-      .then(data => output.textContent = data)
-      .catch(err => output.textContent = "❌ Gagal: " + err);
-    }
+    $('#checkQuota').click(function(){
+      $.post("https://nomorxlku.my.id/api/check_quota.php", {
+        access_token: $('#access_token_temp').val()
+      }, function(s){
+        if(s.status){
+          jsonData = s;
+          populateTable();
+          $('#hasilPaket').removeClass('hidden');
+        } else {
+          $('#logResponse').val("Gagal ambil kuota.");
+        }
+      }, 'json');
+    });
 
-    function beliPaket() {
-      const msisdn = document.getElementById('msisdn').value.trim();
-      const otp = document.getElementById('otp').value.trim();
-      const serviceid = document.getElementById('serviceid').value;
-      const output = document.getElementById('output');
+    function populateTable() {
+      var tableBody = document.getElementById("packageTableBody");
+      tableBody.innerHTML = '';
 
-      if (!msisdn || !otp) {
-        alert("Isi nomor dan OTP dulu");
-        return;
-      }
+      jsonData.data.quotas.forEach(function(quota) {
+        let benefitsHtml = "";
+        quota.benefits.forEach(function(benefit) {
+          benefitsHtml += `<p>${benefit.name}: ${benefit.quota} (${benefit.remaining_quota} tersisa)</p>`;
+        });
 
-      output.textContent = "⏳ Memproses pembelian...";
-      fetch(PROSES_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `aksi=beli&msisdn=${encodeURIComponent(msisdn)}&otp=${encodeURIComponent(otp)}&serviceid=${encodeURIComponent(serviceid)}`
-      })
-      .then(res => res.text())
-      .then(data => output.textContent = data)
-      .catch(err => output.textContent = "❌ Error: " + err);
+        const row = `
+          <tr>
+            <td>${quota.package_id || '-'}</td>
+            <td>${quota.name}</td>
+            <td>${quota.expired_at}</td>
+            <td>${benefitsHtml}</td>
+          </tr>
+        `;
+        tableBody.innerHTML += row;
+      });
     }
   </script>
 </body>
